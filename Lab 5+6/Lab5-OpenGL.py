@@ -125,7 +125,6 @@ def drawTire():
 	glVertex3f(-1, -.5, -.5)
 	glEnd()
 
-
 def drawHouse ():
 	glLineWidth(2.5)
 	glColor3f(1.0, 0.0, 0.0)
@@ -249,7 +248,7 @@ def display():
 	drawHouse()
 	glPopMatrix()
 
-	# House 7
+	# House 10
 	glPushMatrix()
 	glTranslate(0,0,60)
 	glRotate(180,0,1,0)

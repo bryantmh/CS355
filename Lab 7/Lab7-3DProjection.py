@@ -235,30 +235,20 @@ def keyboard(pressed):
 	if pressed[pygame.K_h]:
 		begin()
 
-def constructWorld(linelist, kind):
-	homogenousPoints = getHomogenousPoints(linelist)
-	worldPoints = []
-	for toWorldMatrix in kind:
-		# worldPoints.append(getWorldPoints(homogenousPoints, kind))
-		for line in homogenousPoints:
-			startOut = toWorldMatrix.dot(line.start)
-			endOut = toWorldMatrix.dot(line.end)
-			worldPoints.append(Line3D(startOut, endOut))
-	return worldPoints
-
 def getHomogenousPoints(linelist):
 	homogenousPoints = []
 	for line in linelist:
 		homogenousPoints.append(Line3D([line.start.x, line.start.y, line.start.z, 1], [line.end.x, line.end.y, line.end.z, 1]))
 	return homogenousPoints
 
-def getWorldPoints(homogenousPoints, toWorldMatrix):
-	#Construct World Points
+def constructWorld(linelist, kind):
+	homogenousPoints = getHomogenousPoints(linelist)
 	worldPoints = []
-	for line in homogenousPoints:
-		startOut = toWorldMatrix.dot(line.start)
-		endOut = toWorldMatrix.dot(line.end)
-		worldPoints.append(Line3D(startOut, endOut))
+	for toWorldMatrix in kind:
+		for line in homogenousPoints:
+			startOut = toWorldMatrix.dot(line.start)
+			endOut = toWorldMatrix.dot(line.end)
+			worldPoints.append(Line3D(startOut, endOut))
 	return worldPoints
 
 def constructCar():
@@ -273,23 +263,21 @@ def constructCar():
 	worldTirePoints = []
 
 	for toWorldMatrix in cars:
-		# worldCarPoints.append(getWorldPoints(homogenousCarPoints, toWorldMatrix))
-		for line in homogenousCarPoints:
-			startOut = toWorldMatrix.dot(line.start)
-			endOut = toWorldMatrix.dot(line.end)
-			worldCarPoints.append(Line3D(startOut, endOut))
+		for carLine in homogenousCarPoints:
+			startOutCar = toWorldMatrix.dot(carLine.start)
+			endOutCar = toWorldMatrix.dot(carLine.end)
+			worldCarPoints.append(Line3D(startOutCar, endOutCar))
 
 		#Transformation Heirarchy
 		for toCarMatrix in tires:
-			toWorldMatrix += toCarMatrix
-			# worldTirePoints.append(getWorldPoints(homogenousTirePoints, toWorldMatrix))
-			for line in homogenousTirePoints:
-				startOut = toWorldMatrix.dot(line.start)
-				endOut = toWorldMatrix.dot(line.end)
-				worldTirePoints.append(Line3D(startOut, endOut))
+			for tireLine in homogenousTirePoints:
+				newMatrix = toWorldMatrix.dot(toCarMatrix)
+				startOutTire = newMatrix.dot(tireLine.start)
+				endOutTire = newMatrix.dot(tireLine.end)
+				worldTirePoints.append(Line3D(startOutTire, endOutTire))
+
 
 	return worldCarPoints, worldTirePoints
-
 
 def constructScreen(worldPoints):
 	toCameraMatrix = np.array([[m.cos(m.radians(rot)), 0, -m.sin(m.radians(rot)), -xdisp * m.cos(m.radians(rot)) - zdisp * m.sin(m.radians(rot))],
@@ -324,7 +312,11 @@ def constructScreen(worldPoints):
 		ye = line.end[1]
 		ze = line.end[2]
 		we = line.end[3]
-		if not (((xs > ws or xs < -ws) or (ys > ws or ys < -ws) or (zs > ws or zs < -ws)) and ((xe > we or xe < -we) or (ye > we or ye < -we) or (ze > we or ze < -we))):
+		if not (
+				 ((xs > ws or xs < -ws) and (ys > ws or ys < -ws)) or 
+				 ((xe > we or xe < -we) and (ye > we or ye < -we)) or
+				 ((zs > ws or zs < -ws) or (ze > we or ze < -we))
+			   ):
 			canonicalPoints.append(Line([xs/ws, ys/ws, 1], [xe/we, ye/we, 1]))
 		#Else clip the line
 
@@ -398,14 +390,14 @@ houses = np.array([
 				    [0, 0, 1, 0],
 				    [0, 0, 0, 1]],
 
-				    [[m.cos(m.radians(90)), 0, -m.sin(m.radians(90)), -80],
+				    [[m.cos(m.radians(-90)), 0, -m.sin(m.radians(-90)), -80],
 				    [0, 1, 0, 0],
-				    [m.sin(m.radians(90)), 0, m.cos(m.radians(90)), 20],
+				    [m.sin(m.radians(-90)), 0, m.cos(m.radians(-90)), 20],
 				    [0, 0, 0, 1]],
 
-				    [[m.cos(m.radians(90)), 0, -m.sin(m.radians(90)), -80],
+				    [[m.cos(m.radians(-90)), 0, -m.sin(m.radians(-90)), -80],
 				    [0, 1, 0, 0],
-				    [m.sin(m.radians(90)), 0, m.cos(m.radians(90)), 40],
+				    [m.sin(m.radians(-90)), 0, m.cos(m.radians(-90)), 40],
 				    [0, 0, 0, 1]],
 
 					[[m.cos(m.radians(180)), 0, -m.sin(m.radians(180)), -60],

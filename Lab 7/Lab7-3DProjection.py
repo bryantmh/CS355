@@ -270,8 +270,8 @@ def constructCar():
 
 		#Transformation Heirarchy
 		for toCarMatrix in tires:
+			newMatrix = toWorldMatrix.dot(toCarMatrix)
 			for tireLine in homogenousTirePoints:
-				newMatrix = toWorldMatrix.dot(toCarMatrix)
 				startOutTire = newMatrix.dot(tireLine.start)
 				endOutTire = newMatrix.dot(tireLine.end)
 				worldTirePoints.append(Line3D(startOutTire, endOutTire))

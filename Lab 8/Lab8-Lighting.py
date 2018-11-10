@@ -1,5 +1,5 @@
 """ Modified code from Peter Colling Ridge 
-	Original found at http://www.petercollingridge.co.uk/pygame-3d-graphics-tutorial
+    Original found at http://www.petercollingridge.co.uk/pygame-3d-graphics-tutorial
 """
 
 import pygame, math
@@ -37,8 +37,6 @@ class WireframeViewer(wf.WireframeGroup):
         self.nodeRadius = 4
         
         self.control = 0
-        self.rotx = 270.0
-        self.roty = 270.0
 
     def addWireframe(self, name, wireframe):
         self.wireframes[name] = wireframe
@@ -86,30 +84,29 @@ class WireframeViewer(wf.WireframeGroup):
                         # lightVector = self.light_vector
                         lightVector = self.light_vector / np.linalg.norm(self.light_vector)
 
-                        # print(self.light_vector, lightVector)
+                        NdotL = normal.dot(lightVector)
+                        if NdotL > 0:
+                            m_diffuse = .5
+                            diffuse = (self.light_color * (m_diffuse * colour)) * (NdotL)
+                            diffuse[:] = np.clip(diffuse[:], 0, 255)
 
-                        m_diffuse = .4
-                        diffuse = self.light_color * ((m_diffuse * colour) * (normal.dot(lightVector)))
-                        diffuse[:] = np.clip(diffuse[:], 0, 255)
+                            # Compute Reflection Vector
+                            # r = 2(l · n)n − l
+                            reflectionVector = 2 * (NdotL) * normal - lightVector
 
-                        # Compute Reflection Vector
-                        # r = 2(l · n)n − l
-                        reflectionVector = 2 * (normal.dot(lightVector)) * normal - lightVector
+                            # Compute Specular Reflection
+                            # S ⊗ M_spec (v dot r) ^ Mgls
+                            m_specular = .4
+                            Mgls = 3
+                            specular = (self.light_color * (m_specular * colour)) * ((reflectionVector.dot(self.view_vector)) ** Mgls)
+                            specular[:] = np.clip(specular[:], 0, 255)
 
-                        # Compute Specular Reflection
-                        # S ⊗ M_spec (v dot r) ^ Mgls
-                        m_specular = .5
-                        Mgls = 3
-                        specular = (self.light_color * (m_specular * colour)) * ((reflectionVector.dot(self.view_vector)) ** Mgls)
-                        specular[:] = np.clip(specular[:], 0, 255)
-                        # print(diffuse, specular)
+                            #Once you have implemented diffuse and specular lighting, you will want to include them here
+                            light_total = ambient + diffuse + specular
+                            light_total[:] = np.clip(light_total[:], 0, 255)
+                        else:
+                            light_total = ambient
 
-
-
-						#Once you have implemented diffuse and specular lighting, you will want to include them here
-                        light_total = ambient + diffuse + specular
-                        light_total[:] = np.clip(light_total[:], 0, 255)
- 
                         pygame.draw.polygon(self.screen, light_total, [(nodes[node][0], nodes[node][1]) for node in face], 0)
 
                 if self.displayEdges:
@@ -134,52 +131,60 @@ class WireframeViewer(wf.WireframeGroup):
         
         pygame.display.flip()
 
-    def keyEvent(self, key):
-        # print(self.light_vector)
-        if self.rotx < 0:
-            self.rotx = 360
-        elif self.rotx > 360:
-            self.rotx = 0
-        elif self.roty < 0:
-            self.roty = 360
-        elif self.roty > 360:
-            self.roty = 0
+    def rotateXMatrix(self, radians):
+        c = np.cos(radians)
+        s = np.sin(radians)
+        return np.array([[1,0, 0,0],
+                         [0,c,-s,0],
+                         [0,s, c,0],
+                         [0,0, 0,1]])
 
-        #Your code here
+    def rotateYMatrix(self, radians):
+        c = np.cos(radians)
+        s = np.sin(radians)
+        return np.array([[ c,0,s,0],
+                         [ 0,1,0,0],
+                         [-s,0,c,0],
+                         [ 0,0,0,1]])
+
+    def rotateZMatrix(self, radians):
+        c = np.cos(radians)
+        s = np.sin(radians)
+        return np.array([[c,-s,0,0],
+                         [s, c,0,0],
+                         [0, 0,1,0],
+                         [0, 0,0,1]])
+
+    def keyEvent(self, key):
         if key == pygame.K_w:
-            self.rotx -= 8
-            self.light_vector[2] = math.sin(math.radians(self.rotx)) + math.sin(math.radians(self.roty))
-            self.light_vector[1] = math.cos(math.radians(self.rotx))
+            rotMatrix = self.rotateXMatrix(-.15)
+            endVector = rotMatrix.dot(np.array([self.light_vector[0], self.light_vector[1], self.light_vector[2], 0]))
+            self.light_vector = [endVector[0], endVector[1], endVector[2]]
 
         if key == pygame.K_s:
-            self.rotx += 8
-            self.light_vector[2] = math.sin(math.radians(self.rotx)) + math.sin(math.radians(self.roty))
-            self.light_vector[1] = math.cos(math.radians(self.rotx))
+            rotMatrix = self.rotateXMatrix(.15)
+            endVector = rotMatrix.dot(np.array([self.light_vector[0], self.light_vector[1], self.light_vector[2], 0]))
+            self.light_vector = [endVector[0], endVector[1], endVector[2]]
 
         if key == pygame.K_a:
-            self.roty -= 8
-            self.light_vector[2] = math.sin(math.radians(self.roty)) + math.sin(math.radians(self.rotx))
-            self.light_vector[0] = math.cos(math.radians(self.roty))
+            rotMatrix = self.rotateYMatrix(.15)
+            endVector = rotMatrix.dot(np.array([self.light_vector[0], self.light_vector[1], self.light_vector[2], 0]))
+            self.light_vector = [endVector[0], endVector[1], endVector[2]]
 
         if key == pygame.K_d:
-            self.roty += 8
-            self.light_vector[2] = math.sin(math.radians(self.roty)) + math.sin(math.radians(self.rotx))
-            self.light_vector[0] = math.cos(math.radians(self.roty))
+            rotMatrix = self.rotateYMatrix(-.15)
+            endVector = rotMatrix.dot(np.array([self.light_vector[0], self.light_vector[1], self.light_vector[2], 0]))
+            self.light_vector = [endVector[0], endVector[1], endVector[2]]
 
         if key == pygame.K_q:
-            self.roty -= 8
-            self.rotx -= 8
-            self.light_vector[1] = math.sin(math.radians(self.rotx))
-            self.light_vector[0] = math.cos(math.radians(self.roty))
-            self.light_vector[2] = math.sin(math.radians(self.roty)) + math.sin(math.radians(self.rotx))
+            rotMatrix = self.rotateZMatrix(-.15)
+            endVector = rotMatrix.dot(np.array([self.light_vector[0], self.light_vector[1], self.light_vector[2], 0]))
+            self.light_vector = [endVector[0], endVector[1], endVector[2]]
 
         if key == pygame.K_e:
-            self.roty += 8
-            self.roty += 8
-            self.light_vector[1] = math.sin(math.radians(self.rotx))
-            self.light_vector[0] = math.cos(math.radians(self.roty))
-            self.light_vector[2] = math.sin(math.radians(self.roty)) + math.sin(math.radians(self.rotx))
-
+            rotMatrix = self.rotateZMatrix(.15)
+            endVector = rotMatrix.dot(np.array([self.light_vector[0], self.light_vector[1], self.light_vector[2], 0]))
+            self.light_vector = [endVector[0], endVector[1], endVector[2]]
 
         return
 
@@ -205,7 +210,7 @@ class WireframeViewer(wf.WireframeGroup):
             
         pygame.quit()
 
-		
+        
 resolution = 52
 viewer = WireframeViewer(600, 400)
 viewer.addWireframe('sphere', shape.Spheroid((300,200, 20), (160,160,160), resolution=resolution))
@@ -213,10 +218,10 @@ viewer.addWireframe('sphere', shape.Spheroid((300,200, 20), (160,160,160), resol
 # Colour ball
 faces = viewer.wireframes['sphere'].faces
 for i in range(int(resolution/4)):
-	for j in range(resolution*2-4):
-		f = i*(resolution*4-8) +j
-		faces[f][1][1] = 0
-		faces[f][1][2] = 0
-	
+    for j in range(resolution*2-4):
+        f = i*(resolution*4-8) +j
+        faces[f][1][1] = 0
+        faces[f][1][2] = 0
+    
 viewer.displayEdges = False
 viewer.run()
